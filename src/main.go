@@ -9,10 +9,32 @@ import (
 
 var LicensePath = "/opt/licenser/licenses/"
 
+var fileExts = []string{
+	".go",
+	".js",
+	".html",
+	".css",
+	".md",
+	".txt",
+	".sh",
+	".pl",
+	".rb",
+	".py",
+	".java",
+	".kt",
+	".d",
+	".cs",
+	".php",
+	".c",
+	".cpp",
+	".rs",
+	".m",
+}
+
 func main() {
 	// if no parameters available print usage and exit the program
 	if len(os.Args) <= 2 || os.Args[1] == "-h" || os.Args[1] == "--help" {
-		fmt.Println("Usage: go run main.go <source file> <license name>")
+		fmt.Println("Usage: go run main.go <source files...> <license name>")
 		fmt.Println("Available licenses: mit, gpl, apache, lgpl, mpl")
 
 		os.Exit(1)
@@ -20,23 +42,35 @@ func main() {
 
 	var commentBegin string
 	var commentEnd string
-	var licenseStr string
-	var sourceFileName = os.Args[1]
-	var licenseName = os.Args[2]
+	var sourceFileNames = getFileNamesFromArgs(os.Args[1:])
+	// set last argument as license name
+	var licenseName = os.Args[len(os.Args)-1]
 
-	commentBegin, commentEnd = getCommentSymbols(sourceFileName)
-	licenseStr, err := getLicense(licenseName)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+	for _, sourceFileName := range sourceFileNames {
+
+		commentBegin, commentEnd = getCommentSymbols(sourceFileName)
+		licenseStr, err := getLicense(licenseName)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		err = appendLicense(sourceFileName, licenseStr, commentBegin, commentEnd)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
 	}
 
-	err = appendLicense(sourceFileName, licenseStr, commentBegin, commentEnd)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
+}
 
+func getFileNamesFromArgs(args []string) (fileNames []string) {
+	for _, arg := range args {
+		if isStringInSlice(filepath.Ext(arg), fileExts) {
+			fileNames = append(fileNames, arg)
+		}
+	}
+	return
 }
 
 func getCommentSymbols(fileName string) (commentBegin string, commentEnd string) {
@@ -159,4 +193,13 @@ func appendLicense(sourceFileName string, licenseStr string, commentBegin string
 	sourceFile.Close()
 
 	return err
+}
+
+func isStringInSlice(item string, list []string) bool {
+	for _, listItem := range list {
+		if item == listItem {
+			return true
+		}
+	}
+	return false
 }
